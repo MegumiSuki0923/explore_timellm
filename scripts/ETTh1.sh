@@ -1,11 +1,13 @@
+export PYTHONUNBUFFERED=1
+
 model_name=TimeLLM
 train_epochs=100
 learning_rate=0.01
-llm_model='MAMBA'
-llm_layers=24
+llm_model='GPT2'
+gpt2_layers=12
 llm_dim=768
 
-master_port=00096
+master_port=00097
 num_process=1
 batch_size=24
 d_model=32
@@ -13,7 +15,7 @@ d_ff=128
 
 dataset=ETTh1
 seq_len=512
-comment='mamba130m'
+comment='base'
 
 # dynamically generate log file path
 timestamp=$(date +"%Y-%m-%d_%H:%M")
@@ -21,22 +23,18 @@ log_dir="./logs/${dataset}"
 mkdir -p "$log_dir"
 log_file="${log_dir}/${dataset}_${seq_len}_${comment}_${timestamp}.log"
 
-print_run_info() {
-  local pred_len=$1
-  local learning_rate=$2
-  echo "==========================================" | tee -a "$log_file"
-  echo "[$(date +'%Y-%m-%d %H:%M:%S')] Start running:" | tee -a "$log_file"
-  echo "  dataset      : $dataset" | tee -a "$log_file"
-  echo "  model        : $model_name" | tee -a "$log_file"
-  echo "  llm_model    : $llm_model" | tee -a "$log_file"
-  echo "  seq_len      : $seq_len" | tee -a "$log_file"
-  echo "  pred_len     : $pred_len" | tee -a "$log_file"
-  echo "  learning_rate: $learning_rate" | tee -a "$log_file"
-  echo "  batch_size   : $batch_size" | tee -a "$log_file"
-  echo "==========================================" | tee -a "$log_file"
-}
-
-print_run_info 96 $learning_rate
+{
+echo "=========================================="
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Start running:"
+echo "  dataset      : ${dataset}"
+echo "  model        : ${model_name}"
+echo "  llm_model    : ${llm_model}"
+echo "  seq_len      : ${seq_len}"
+echo "  pred_len     : 96"
+echo "  learning_rate: ${learning_rate}"
+echo "  batch_size   : ${batch_size}"
+echo "=========================================="
+} | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -60,14 +58,26 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --batch_size $batch_size \
   --learning_rate $learning_rate \
   --llm_model $llm_model \
-  --llm_layers $llm_layers \
+  --llm_layers $gpt2_layers \
   --llm_dim $llm_dim \
   --train_epochs $train_epochs \
   --model_comment $comment \
   --save_checkpoint 0 \
-  2>&1 | tee -a "$log_file"
+  --patience 3 \
+  | tee -a "$log_file"
 
-print_run_info 192 0.02
+{
+echo "=========================================="
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Start running:"
+echo "  dataset      : ${dataset}"
+echo "  model        : ${model_name}"
+echo "  llm_model    : ${llm_model}"
+echo "  seq_len      : ${seq_len}"
+echo "  pred_len     : 192"
+echo "  learning_rate: 0.02"
+echo "  batch_size   : ${batch_size}"
+echo "=========================================="
+} | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -86,19 +96,31 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --c_out 7 \
   --des 'Exp' \
   --itr 1 \
-  --d_model $d_model \
-  --d_ff $d_ff \
+  --d_model 32 \
+  --d_ff 128 \
   --batch_size $batch_size \
   --learning_rate 0.02 \
   --llm_model $llm_model \
-  --llm_layers $llm_layers \
+  --llm_layers $gpt2_layers \
   --llm_dim $llm_dim \
   --train_epochs $train_epochs \
   --model_comment $comment \
   --save_checkpoint 0 \
-  2>&1 | tee -a "$log_file"
+  --patience 3 \
+  | tee -a "$log_file"
 
-print_run_info 336 0.001
+{
+echo "=========================================="
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Start running:"
+echo "  dataset      : ${dataset}"
+echo "  model        : ${model_name}"
+echo "  llm_model    : ${llm_model}"
+echo "  seq_len      : ${seq_len}"
+echo "  pred_len     : 336"
+echo "  learning_rate: 0.001"
+echo "  batch_size   : ${batch_size}"
+echo "=========================================="
+} | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -120,17 +142,29 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --d_model $d_model \
   --d_ff $d_ff \
   --batch_size $batch_size \
-  --lradj 'type1' \
+  --lradj 'COS'\
   --learning_rate 0.001 \
   --llm_model $llm_model \
-  --llm_layers $llm_layers \
+  --llm_layers $gpt2_layers \
   --llm_dim $llm_dim \
   --train_epochs $train_epochs \
   --model_comment $comment \
   --save_checkpoint 0 \
-  2>&1 | tee -a "$log_file"
+  --patience 3 \
+  | tee -a "$log_file"
 
-print_run_info 720 $learning_rate
+{
+echo "=========================================="
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Start running:"
+echo "  dataset      : ${dataset}"
+echo "  model        : ${model_name}"
+echo "  llm_model    : ${llm_model}"
+echo "  seq_len      : ${seq_len}"
+echo "  pred_len     : 720"
+echo "  learning_rate: ${learning_rate}"
+echo "  batch_size   : ${batch_size}"
+echo "=========================================="
+} | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -154,9 +188,10 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --batch_size $batch_size \
   --learning_rate $learning_rate \
   --llm_model $llm_model \
-  --llm_layers $llm_layers \
+  --llm_layers $gpt2_layers \
   --llm_dim $llm_dim \
   --train_epochs $train_epochs \
   --model_comment $comment \
   --save_checkpoint 0 \
-  2>&1 | tee -a "$log_file"
+  --patience 3 \
+  | tee -a "$log_file"
