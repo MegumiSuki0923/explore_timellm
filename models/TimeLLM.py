@@ -1,15 +1,29 @@
 from math import sqrt
+import os
 
 import torch
 import torch.nn as nn
 
 from transformers import LlamaConfig, LlamaModel, LlamaTokenizer, GPT2Config, GPT2Model, GPT2Tokenizer, BertConfig, \
-    BertModel, BertTokenizer
-from layers.Embed import PatchEmbedding
+    BertModel, BertTokenizer, MambaConfig, MambaModel, AutoTokenizer
+from layers.Embed import MultiScaleWaveletPatchEmbedding
 import transformers
 from layers.StandardNorm import Normalize
 
 transformers.logging.set_verbosity_error()
+
+MODELSCOPE_MODEL_MAP = {
+    'huggyllama/llama-7b': 'huggyllama/llama-7b',
+    'openai-community/gpt2': 'AI-ModelScope/gpt2',
+    'google-bert/bert-base-uncased': 'AI-ModelScope/bert-base-uncased',
+    'state-spaces/mamba-130m-hf': 'AI-ModelScope/mamba-130m-hf',
+}
+
+def get_modelscope_path(hf_model_id):
+    from modelscope.hub.snapshot_download import snapshot_download
+    ms_model_id = MODELSCOPE_MODEL_MAP.get(hf_model_id, hf_model_id)
+    local_path = snapshot_download(ms_model_id)
+    return local_path
 
 
 class FlattenHead(nn.Module):
@@ -41,114 +55,75 @@ class Model(nn.Module):
         self.stride = configs.stride
 
         if configs.llm_model == 'LLAMA':
-            # self.llama_config = LlamaConfig.from_pretrained('/mnt/alps/modelhub/pretrained_model/LLaMA/7B_hf/')
-            self.llama_config = LlamaConfig.from_pretrained('huggyllama/llama-7b')
+            local_model_path = get_modelscope_path('huggyllama/llama-7b')
+            self.llama_config = LlamaConfig.from_pretrained(local_model_path)
             self.llama_config.num_hidden_layers = configs.llm_layers
             self.llama_config.output_attentions = True
             self.llama_config.output_hidden_states = True
-            try:
-                self.llm_model = LlamaModel.from_pretrained(
-                    # "/mnt/alps/modelhub/pretrained_model/LLaMA/7B_hf/",
-                    'huggyllama/llama-7b',
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    config=self.llama_config,
-                    # load_in_4bit=True
-                )
-            except EnvironmentError:  # downloads model from HF is not already done
-                print("Local model files not found. Attempting to download...")
-                self.llm_model = LlamaModel.from_pretrained(
-                    # "/mnt/alps/modelhub/pretrained_model/LLaMA/7B_hf/",
-                    'huggyllama/llama-7b',
-                    trust_remote_code=True,
-                    local_files_only=False,
-                    config=self.llama_config,
-                    # load_in_4bit=True
-                )
-            try:
-                self.tokenizer = LlamaTokenizer.from_pretrained(
-                    # "/mnt/alps/modelhub/pretrained_model/LLaMA/7B_hf/tokenizer.model",
-                    'huggyllama/llama-7b',
-                    trust_remote_code=True,
-                    local_files_only=True
-                )
-            except EnvironmentError:  # downloads the tokenizer from HF if not already done
-                print("Local tokenizer files not found. Atempting to download them..")
-                self.tokenizer = LlamaTokenizer.from_pretrained(
-                    # "/mnt/alps/modelhub/pretrained_model/LLaMA/7B_hf/tokenizer.model",
-                    'huggyllama/llama-7b',
-                    trust_remote_code=True,
-                    local_files_only=False
-                )
+            self.llm_model = LlamaModel.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+                config=self.llama_config,
+            )
+            self.tokenizer = LlamaTokenizer.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+            )
         elif configs.llm_model == 'GPT2':
-            self.gpt2_config = GPT2Config.from_pretrained('openai-community/gpt2')
+            local_model_path = get_modelscope_path('openai-community/gpt2')
+            self.gpt2_config = GPT2Config.from_pretrained(local_model_path)
 
             self.gpt2_config.num_hidden_layers = configs.llm_layers
             self.gpt2_config.output_attentions = True
             self.gpt2_config.output_hidden_states = True
-            try:
-                self.llm_model = GPT2Model.from_pretrained(
-                    'openai-community/gpt2',
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    config=self.gpt2_config,
-                )
-            except EnvironmentError:  # downloads model from HF is not already done
-                print("Local model files not found. Attempting to download...")
-                self.llm_model = GPT2Model.from_pretrained(
-                    'openai-community/gpt2',
-                    trust_remote_code=True,
-                    local_files_only=False,
-                    config=self.gpt2_config,
-                )
-
-            try:
-                self.tokenizer = GPT2Tokenizer.from_pretrained(
-                    'openai-community/gpt2',
-                    trust_remote_code=True,
-                    local_files_only=True
-                )
-            except EnvironmentError:  # downloads the tokenizer from HF if not already done
-                print("Local tokenizer files not found. Atempting to download them..")
-                self.tokenizer = GPT2Tokenizer.from_pretrained(
-                    'openai-community/gpt2',
-                    trust_remote_code=True,
-                    local_files_only=False
-                )
+            self.llm_model = GPT2Model.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+                config=self.gpt2_config,
+            )
+            self.tokenizer = GPT2Tokenizer.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+            )
         elif configs.llm_model == 'BERT':
-            self.bert_config = BertConfig.from_pretrained('google-bert/bert-base-uncased')
+            local_model_path = get_modelscope_path('google-bert/bert-base-uncased')
+            self.bert_config = BertConfig.from_pretrained(local_model_path)
 
             self.bert_config.num_hidden_layers = configs.llm_layers
             self.bert_config.output_attentions = True
             self.bert_config.output_hidden_states = True
-            try:
-                self.llm_model = BertModel.from_pretrained(
-                    'google-bert/bert-base-uncased',
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    config=self.bert_config,
-                )
-            except EnvironmentError:  # downloads model from HF is not already done
-                print("Local model files not found. Attempting to download...")
-                self.llm_model = BertModel.from_pretrained(
-                    'google-bert/bert-base-uncased',
-                    trust_remote_code=True,
-                    local_files_only=False,
-                    config=self.bert_config,
-                )
+            self.llm_model = BertModel.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+                config=self.bert_config,
+            )
+            self.tokenizer = BertTokenizer.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+            )
+        elif configs.llm_model == 'MAMBA':
+            local_model_path = get_modelscope_path('state-spaces/mamba-130m-hf')
+            self.mamba_config = MambaConfig.from_pretrained(local_model_path)
 
+            self.mamba_config.num_hidden_layers = configs.llm_layers
+            # Mamba is attention-free: no output_attentions, keep hidden states only
+            self.mamba_config.output_hidden_states = True
+            self.llm_model = MambaModel.from_pretrained(
+                local_model_path,
+                trust_remote_code=True,
+                config=self.mamba_config,
+            )
+            # mamba-130m was LM-pretrained on the GPT-2 vocabulary; fall back to
+            # the GPT2 BPE tokenizer if the snapshot ships without tokenizer files
             try:
-                self.tokenizer = BertTokenizer.from_pretrained(
-                    'google-bert/bert-base-uncased',
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    local_model_path,
                     trust_remote_code=True,
-                    local_files_only=True
                 )
-            except EnvironmentError:  # downloads the tokenizer from HF if not already done
-                print("Local tokenizer files not found. Atempting to download them..")
-                self.tokenizer = BertTokenizer.from_pretrained(
-                    'google-bert/bert-base-uncased',
+            except Exception:
+                self.tokenizer = GPT2Tokenizer.from_pretrained(
+                    get_modelscope_path('openai-community/gpt2'),
                     trust_remote_code=True,
-                    local_files_only=False
                 )
         else:
             raise Exception('LLM model is not defined')
@@ -170,7 +145,7 @@ class Model(nn.Module):
 
         self.dropout = nn.Dropout(configs.dropout)
 
-        self.patch_embedding = PatchEmbedding(
+        self.patch_embedding = MultiScaleWaveletPatchEmbedding(
             configs.d_model, self.patch_len, self.stride, configs.dropout)
 
         self.word_embeddings = self.llm_model.get_input_embeddings().weight
@@ -247,7 +222,11 @@ class Model(nn.Module):
             dec_out, (-1, n_vars, dec_out.shape[-2], dec_out.shape[-1]))
         dec_out = dec_out.permute(0, 1, 3, 2).contiguous()
 
-        dec_out = self.output_projection(dec_out[:, :, :, -self.patch_nums:])
+        # Mamba keeps its residual stream in fp32 (residual_in_fp32), so its hidden
+        # states can be fp32 while the head stays bf16 under mixed-precision training;
+        # align dtypes before the flatten head (no-op for GPT2/LLAMA/BERT).
+        head_dtype = self.output_projection.linear.weight.dtype
+        dec_out = self.output_projection(dec_out[:, :, :, -self.patch_nums:].to(head_dtype))
         dec_out = dec_out.permute(0, 2, 1).contiguous()
 
         dec_out = self.normalize_layers(dec_out, 'denorm')

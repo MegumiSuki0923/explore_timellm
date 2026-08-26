@@ -157,30 +157,40 @@ class ReplicationPad1d(nn.Module):
         return output
 
 
-class PatchEmbedding(nn.Module):
-    def __init__(self, d_model, patch_len, stride, dropout):
-        super(PatchEmbedding, self).__init__()
-        # Patching
+class MultiScaleWaveletPatchEmbedding(nn.Module):
+    """
+    Drop-in Replacement for PatchEmbedding
+    Source: WaveToken (ICLR 2025) & FreqMask (AAAI 2025)
+    """
+    def __init__(self, d_model: int, patch_len: int, stride: int, dropout: float):
+        super().__init__()
         self.patch_len = patch_len
         self.stride = stride
+        
         self.padding_patch_layer = ReplicationPad1d((0, stride))
-
-        # Backbone, Input encoding: projection of feature vectors onto a d-dim vector space
-        self.value_embedding = TokenEmbedding(patch_len, d_model)
-
-        # Positional embedding
-        # self.position_embedding = PositionalEmbedding(d_model)
-
-        # Residual dropout
+        
+        self.wavelet_conv_low = nn.Conv1d(patch_len, d_model // 2, kernel_size=3, padding=1)
+        self.wavelet_conv_high = nn.Conv1d(patch_len, d_model // 2, kernel_size=3, padding=1)
+        
+        self.value_embedding = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.GELU()
+        )
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
-        # do patching
+    def forward(self, x: torch.Tensor):
         n_vars = x.shape[1]
         x = self.padding_patch_layer(x)
         x = x.unfold(dimension=-1, size=self.patch_len, step=self.stride)
         x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
-        # Input encoding
+        
+        x_conv = x.permute(0, 2, 1)
+        
+        low_freq = self.wavelet_conv_low(x_conv)
+        high_freq = self.wavelet_conv_high(x_conv - x_conv.mean(dim=-1, keepdim=True))
+        
+        x = torch.cat([low_freq, high_freq], dim=1)
+        x = x.transpose(1, 2)
         x = self.value_embedding(x)
         return self.dropout(x), n_vars
 

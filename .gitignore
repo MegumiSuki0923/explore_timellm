@@ -1,0 +1,19 @@
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data and Logs
+dataset/
+status/
+
+# IDE and Environment
+.qoder/
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary and Build Files
+*.swp
+*.bak
+*.tmp
