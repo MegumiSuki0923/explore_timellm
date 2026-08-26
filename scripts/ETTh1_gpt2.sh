@@ -1,3 +1,5 @@
+export PYTHONUNBUFFERED=1
+
 model_name=TimeLLM
 train_epochs=100
 learning_rate=0.01
@@ -62,7 +64,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --model_comment $comment \
   --save_checkpoint 0 \
   --patience 3 \
-  2>&1 | tee -a "$log_file"
+  | tee -a "$log_file"
 
 {
 echo "=========================================="
@@ -105,7 +107,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --model_comment $comment \
   --save_checkpoint 0 \
   --patience 3 \
-  2>&1 | tee -a "$log_file"
+  | tee -a "$log_file"
 
 {
 echo "=========================================="
@@ -149,7 +151,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --model_comment $comment \
   --save_checkpoint 0 \
   --patience 3 \
-  2>&1 | tee -a "$log_file"
+  | tee -a "$log_file"
 
 {
 echo "=========================================="
@@ -192,4 +194,4 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --model_comment $comment \
   --save_checkpoint 0 \
   --patience 3 \
-  2>&1 | tee -a "$log_file"
+  | tee -a "$log_file"
