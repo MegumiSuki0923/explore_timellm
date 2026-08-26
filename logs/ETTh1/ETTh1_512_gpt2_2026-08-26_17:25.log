@@ -1,0 +1,40 @@
+==========================================
+[2026-08-26 17:25:36] Start running:
+  dataset      : ETTh1
+  model        : TimeLLM
+  llm_model    : GPT2
+  seq_len      : 512
+  pred_len     : 96
+  learning_rate: 0.01
+  batch_size   : 24
+==========================================
+==========================================
+[2026-08-26 17:26:15] Start running:
+  dataset      : ETTh1
+  model        : TimeLLM
+  llm_model    : GPT2
+  seq_len      : 512
+  pred_len     : 192
+  learning_rate: 0.02
+  batch_size   : 24
+==========================================
+==========================================
+[2026-08-26 17:26:53] Start running:
+  dataset      : ETTh1
+  model        : TimeLLM
+  llm_model    : GPT2
+  seq_len      : 512
+  pred_len     : 336
+  learning_rate: 0.001
+  batch_size   : 24
+==========================================
+==========================================
+[2026-08-26 17:27:32] Start running:
+  dataset      : ETTh1
+  model        : TimeLLM
+  llm_model    : GPT2
+  seq_len      : 512
+  pred_len     : 720
+  learning_rate: 0.01
+  batch_size   : 24
+==========================================

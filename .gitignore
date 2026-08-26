@@ -17,3 +17,6 @@ status/
 *.swp
 *.bak
 *.tmp
+
+# 自定义文件
+AGENTS.md

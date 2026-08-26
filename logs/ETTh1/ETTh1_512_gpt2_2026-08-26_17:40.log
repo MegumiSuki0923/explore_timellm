@@ -1,0 +1,24 @@
+==========================================
+[2026-08-26 17:40:23] Start running:
+  dataset      : ETTh1
+  model        : TimeLLM
+  llm_model    : GPT2
+  seq_len      : 512
+  pred_len     : 96
+  learning_rate: 0.01
+  batch_size   : 24
+==========================================
+	iters: 100, epoch: 1 | loss: 0.5382091
+	speed: 0.1164s/iter; left time: 27242.3447s
+	iters: 200, epoch: 1 | loss: 0.3792303
+	speed: 0.1039s/iter; left time: 24304.2157s
+	iters: 300, epoch: 1 | loss: 0.4409114
+	speed: 0.1035s/iter; left time: 24206.3230s
+	iters: 400, epoch: 1 | loss: 0.4580919
+	speed: 0.1030s/iter; left time: 24078.2341s
+	iters: 500, epoch: 1 | loss: 0.3486245
+	speed: 0.1036s/iter; left time: 24204.0055s
+	iters: 600, epoch: 1 | loss: 0.4227248
+	speed: 0.1030s/iter; left time: 24068.7570s
+	iters: 700, epoch: 1 | loss: 0.5125182
+	speed: 0.1031s/iter; left time: 24076.7003s
