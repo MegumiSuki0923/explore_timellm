@@ -22,6 +22,23 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # force line buffering so prints are visible in real-time when piped through tee
 sys.stdout.reconfigure(line_buffering=True)
 
+
+class ForceInteractiveTTY:
+    """Wrap a stream so tqdm uses \\r (overwrite) mode even in a pipe.
+
+    When viewed with `cat`, only the latest progress line is visible,
+    matching terminal behavior.
+    """
+
+    def __init__(self, stream):
+        self._stream = stream
+
+    def isatty(self):
+        return True
+
+    def __getattr__(self, attr):
+        return getattr(self._stream, attr)
+
 from utils.tools import del_files, EarlyStopping, adjust_learning_rate, vali, load_content
 
 parser = argparse.ArgumentParser(description='Time-LLM')
@@ -181,7 +198,7 @@ for ii in range(args.itr):
 
         model.train()
         epoch_time = time.time()
-        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader), disable=not sys.stderr.isatty()):
+        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader), file=ForceInteractiveTTY(sys.stderr), ncols=80):
             iter_count += 1
             model_optim.zero_grad()
 
