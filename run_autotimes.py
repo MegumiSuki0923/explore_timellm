@@ -15,6 +15,23 @@ from models.TimeLLM_AutoTimes import build_shift_target, rollout_steps
 HORIZONS = (96, 192, 336, 720)
 
 
+class ValidationEarlyStopping:
+    def __init__(self, patience: int) -> None:
+        if patience <= 0:
+            raise ValueError("patience must be positive")
+        self.patience = patience
+        self.best_loss = float("inf")
+        self.counter = 0
+
+    def update(self, validation_loss: float) -> bool:
+        if validation_loss < self.best_loss:
+            self.best_loss = validation_loss
+            self.counter = 0
+        else:
+            self.counter += 1
+        return self.counter >= self.patience
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="TimeLLM-GPT2 x AutoTimes")
     parser.add_argument("--data", default="ETTh1")
@@ -27,7 +44,9 @@ def parse_args():
     parser.add_argument("--token_len", type=int, default=64)
     parser.add_argument("--batch_size", type=int, default=24)
     parser.add_argument("--num_workers", type=int, default=10)
-    parser.add_argument("--train_epochs", type=int, default=10)
+    parser.add_argument("--train_epochs", type=int, default=100)
+    parser.add_argument("--patience", type=int, default=3)
+    parser.add_argument("--tmax", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=5e-4)
     parser.add_argument("--seed", type=int, default=2021)
     parser.add_argument("--llm_model", default="GPT2")
@@ -50,6 +69,8 @@ def parse_args():
         raise ValueError("label_len must equal seq_len - token_len")
     if args.use_timestamp and not args.timestamp_cache:
         raise ValueError("--timestamp_cache is required with --use_timestamp")
+    if args.train_epochs <= 0 or args.tmax <= 0:
+        raise ValueError("train_epochs and tmax must be positive")
     return args
 
 
@@ -153,8 +174,9 @@ def main():
     trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
     optimizer = torch.optim.Adam(trainable, lr=args.learning_rate)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=args.train_epochs, eta_min=1e-8
+        optimizer, T_max=args.tmax, eta_min=1e-8
     )
+    early_stopping = ValidationEarlyStopping(args.patience)
     print(
         f"PARAMS trainable={sum(p.numel() for p in trainable)} "
         f"total={sum(p.numel() for p in model.parameters())}",
@@ -182,7 +204,6 @@ def main():
             optimizer.step()
             train_loss_sum += loss.item()
             train_count += 1
-        scheduler.step()
         validation_loss = validate(model, val_loader, args)
         print(
             f"EPOCH epoch={epoch} train_loss={train_loss_sum/train_count:.7f} "
@@ -208,6 +229,19 @@ def main():
                 )
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
+
+        should_stop = early_stopping.update(validation_loss)
+        print(
+            f"EARLY_STOPPING epoch={epoch} val_loss={validation_loss:.7f} "
+            f"best_val_loss={early_stopping.best_loss:.7f} "
+            f"counter={early_stopping.counter} patience={args.patience} "
+            f"stop={str(should_stop).lower()}",
+            flush=True,
+        )
+        if should_stop:
+            print(f"TRAINING_STOP reason=early_stopping epoch={epoch}", flush=True)
+            break
+        scheduler.step()
 
 
 if __name__ == "__main__":

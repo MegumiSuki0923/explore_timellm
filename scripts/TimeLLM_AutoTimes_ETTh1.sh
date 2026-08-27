@@ -36,7 +36,9 @@ python -u run_autotimes.py \
   --token_len 64 \
   --batch_size 24 \
   --learning_rate 0.0005 \
-  --train_epochs 10 \
+  --train_epochs 100 \
+  --patience 3 \
+  --tmax 100 \
   --llm_model GPT2 \
   --llm_layers 12 \
   --llm_dim 768 \

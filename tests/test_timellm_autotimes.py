@@ -2,6 +2,7 @@ import torch
 
 from models.TimeLLM_AutoTimes import build_shift_target, rollout_steps, segment_series
 from summarize_autotimes_log import parse_best_metrics
+from run_autotimes import ValidationEarlyStopping
 
 
 def test_segment_series_covers_all_points_without_overlap():
@@ -46,3 +47,15 @@ def test_log_parser_ignores_failed_and_nonfinite_metrics():
         "METRIC epoch=3 horizon=96 mse=0.3 mae=0.4 seconds=1 peak_mem_mb=1 status=ok",
     ]
     assert parse_best_metrics(lines) == {96: {"epoch": 3, "mse": 0.3, "mae": 0.4}}
+
+
+def test_validation_early_stopping_uses_three_consecutive_non_improvements():
+    tracker = ValidationEarlyStopping(patience=3)
+    assert tracker.update(1.0) is False
+    assert tracker.update(0.9) is False
+    assert tracker.update(0.91) is False
+    assert tracker.counter == 1
+    assert tracker.update(0.92) is False
+    assert tracker.counter == 2
+    assert tracker.update(0.93) is True
+    assert tracker.counter == 3

@@ -4,7 +4,7 @@
 
 在不修改原始 `TimeLLM.py`、`Embed.py` 和 `baseline.md` 的前提下，新增独立的 GPT-2-only 自回归模型。当前基线为 ETTh1、`seq_len=512`、Avg MSE `0.4342`、Avg MAE `0.4491`。
 
-固定配置：`seq_len=512`、`label_len=448`、`token_len=64`、`batch_size=24`、`lr=5e-4`、seed `2021`、bf16、10 epochs、无 checkpoint，仅写日志。
+固定配置：`seq_len=512`、`label_len=448`、`token_len=64`、`batch_size=24`、`lr=5e-4`、seed `2021`、bf16、最大100 epochs、`patience=3`、`T_max=100`、无 checkpoint，仅写日志。
 
 ## 核心架构
 
@@ -33,7 +33,7 @@
 
 ## 运行和指标
 
-新增独立模型、独立 runner 和独立 ETTh1 脚本。runner 禁用 early stopping、跑满10个 epoch、从不保存 checkpoint。每个 epoch 直接滚动评估四个 horizon，日志路径为 `./logs/ETTh1/ETTh1_512_{model_comment}_{YYYY-mm-dd_HH:mm}.log`。
+新增独立模型、独立 runner 和独立 ETTh1 脚本。runner 从不保存 checkpoint；每个 epoch 完成 Validation 和四个 Test horizon 后，以 Validation Loss 更新 early stopping，连续3轮未改善即停止，最晚训练到100轮。CosineAnnealingLR 使用 `T_max=100`。日志路径为 `./logs/ETTh1/ETTh1_512_{model_comment}_{YYYY-mm-dd_HH:mm}.log`。
 
 每个 epoch/horizon 输出一行机器可解析记录：`METRIC epoch=<n> horizon=<h> mse=<v> mae=<v> seconds=<v> peak_mem_mb=<v> status=<ok|fail>`。NaN、Inf或异常记为 `status=fail`，该 epoch 不参与对应 horizon 的最优选择。
 
