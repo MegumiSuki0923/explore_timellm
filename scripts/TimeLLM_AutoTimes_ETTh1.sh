@@ -4,6 +4,8 @@ set -euo pipefail
 dataset=ETTh1
 seq_len=512
 comment=${1:-ar_direct}
+data_root=${DATA_ROOT:-./dataset/ETT-small/}
+timestamp_cache=${TIMESTAMP_CACHE:-./dataset/ETT-small/ETTh1_gpt2_tl64.pt}
 timestamp=$(date +"%Y-%m-%d_%H:%M")
 log_dir="./logs/${dataset}"
 log_file="${log_dir}/${dataset}_${seq_len}_${comment}_${timestamp}.log"
@@ -15,7 +17,7 @@ if [[ "$comment" != ar_direct && "$comment" != ar_* ]]; then
   exit 2
 fi
 if [[ "$comment" == *timestamp* ]]; then
-  extra_args+=(--use_timestamp --timestamp_cache ./dataset/ETT-small/ETTh1_gpt2_tl64.pt)
+  extra_args+=(--use_timestamp --timestamp_cache "$timestamp_cache")
 fi
 if [[ "$comment" == *reprogram* ]]; then
   extra_args+=(--use_reprogram)
@@ -26,7 +28,7 @@ fi
 
 python -u run_autotimes.py \
   --data "$dataset" \
-  --root_path ./dataset/ETT-small/ \
+  --root_path "$data_root" \
   --data_path ETTh1.csv \
   --features M \
   --seq_len 512 \
