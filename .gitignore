@@ -5,7 +5,7 @@ __pycache__/
 
 # Data and Logs
 dataset/
-status/
+logs/
 
 # IDE and Environment
 .qoder/
@@ -17,3 +17,6 @@ status/
 *.swp
 *.bak
 *.tmp
+
+# AI relativity
+AGENTS.md

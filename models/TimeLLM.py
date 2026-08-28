@@ -6,7 +6,7 @@ import torch.nn as nn
 
 from transformers import LlamaConfig, LlamaModel, LlamaTokenizer, GPT2Config, GPT2Model, GPT2Tokenizer, BertConfig, \
     BertModel, BertTokenizer, MambaConfig, MambaModel, AutoTokenizer
-from layers.Embed import MultiScaleWaveletPatchEmbedding
+from layers.Embed import PatchEmbedding
 import transformers
 from layers.StandardNorm import Normalize
 
@@ -145,7 +145,7 @@ class Model(nn.Module):
 
         self.dropout = nn.Dropout(configs.dropout)
 
-        self.patch_embedding = MultiScaleWaveletPatchEmbedding(
+        self.patch_embedding = PatchEmbedding(
             configs.d_model, self.patch_len, self.stride, configs.dropout)
 
         self.word_embeddings = self.llm_model.get_input_embeddings().weight
