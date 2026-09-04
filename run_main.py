@@ -102,6 +102,7 @@ parser.add_argument('--period_len', type=int, default=24, help='period length fo
 parser.add_argument('--prompt_domain', type=int, default=0, help='')
 parser.add_argument('--llm_model', type=str, default='LLAMA', help='LLM model') # LLAMA, GPT2, BERT, MAMBA
 parser.add_argument('--llm_dim', type=int, default=768, help='LLM model dimension')# LLama7b:4096; GPT2-small:768; BERT-base:768; Mamba-130m:768
+parser.add_argument('--llm_chunk_size', type=int, default=32, help='micro-batch size for each LLM forward pass')
 
 
 # optimization

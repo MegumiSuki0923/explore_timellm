@@ -81,6 +81,9 @@ class Model(nn.Module):
         self.patch_len = configs.patch_len
         self.stride = configs.stride
         self.period_len = getattr(configs, 'period_len', 24)
+        self.llm_chunk_size = configs.llm_chunk_size
+        if self.llm_chunk_size < 1:
+            raise ValueError('llm_chunk_size must be a positive integer')
 
         # SparseTSF Segment & Padding parameters
         self.seg_num_x = ceil(self.seq_len / self.period_len)
@@ -311,7 +314,7 @@ class Model(nn.Module):
         llama_enc_out = torch.cat([prompt_embeddings, enc_out], dim=1)  # (B * N, L_p + patch_nums, d_llm)
 
         # Micro-chunking LLM forward pass to keep peak VRAM under control
-        chunk_size = 32
+        chunk_size = self.llm_chunk_size
         total_bn = llama_enc_out.shape[0]
         if total_bn <= chunk_size:
             dec_out = self.llm_model(inputs_embeds=llama_enc_out).last_hidden_state

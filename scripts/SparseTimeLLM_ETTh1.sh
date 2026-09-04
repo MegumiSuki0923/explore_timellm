@@ -11,6 +11,7 @@ period_len=24
 master_port=00098
 num_process=1
 batch_size=8
+llm_chunk_size=56
 d_model=32
 d_ff=128
 
@@ -35,6 +36,7 @@ echo "  pred_len     : 96"
 echo "  period_len   : ${period_len}"
 echo "  learning_rate: ${learning_rate}"
 echo "  batch_size   : ${batch_size}"
+echo "  llm_chunk_size: ${llm_chunk_size}"
 echo "=========================================="
 } | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
@@ -59,6 +61,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --d_model $d_model \
   --d_ff $d_ff \
   --batch_size $batch_size \
+  --llm_chunk_size $llm_chunk_size \
   --learning_rate $learning_rate \
   --llm_model $llm_model \
   --llm_layers $gpt2_layers \
@@ -80,6 +83,7 @@ echo "  pred_len     : 192"
 echo "  period_len   : ${period_len}"
 echo "  learning_rate: 0.02"
 echo "  batch_size   : ${batch_size}"
+echo "  llm_chunk_size: ${llm_chunk_size}"
 echo "=========================================="
 } | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
@@ -104,6 +108,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --d_model 32 \
   --d_ff 128 \
   --batch_size $batch_size \
+  --llm_chunk_size $llm_chunk_size \
   --learning_rate 0.02 \
   --llm_model $llm_model \
   --llm_layers $gpt2_layers \
@@ -125,6 +130,7 @@ echo "  pred_len     : 336"
 echo "  period_len   : ${period_len}"
 echo "  learning_rate: 0.001"
 echo "  batch_size   : ${batch_size}"
+echo "  llm_chunk_size: ${llm_chunk_size}"
 echo "=========================================="
 } | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
@@ -149,6 +155,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --d_model $d_model \
   --d_ff $d_ff \
   --batch_size $batch_size \
+  --llm_chunk_size $llm_chunk_size \
   --lradj 'COS'\
   --learning_rate 0.001 \
   --llm_model $llm_model \
@@ -171,6 +178,7 @@ echo "  pred_len     : 720"
 echo "  period_len   : ${period_len}"
 echo "  learning_rate: ${learning_rate}"
 echo "  batch_size   : ${batch_size}"
+echo "  llm_chunk_size: ${llm_chunk_size}"
 echo "=========================================="
 } | tee -a "$log_file"
 accelerate launch --mixed_precision bf16 --num_processes $num_process --main_process_port $master_port run_main.py \
@@ -195,6 +203,7 @@ accelerate launch --mixed_precision bf16 --num_processes $num_process --main_pro
   --d_model $d_model \
   --d_ff $d_ff \
   --batch_size $batch_size \
+  --llm_chunk_size $llm_chunk_size \
   --learning_rate $learning_rate \
   --llm_model $llm_model \
   --llm_layers $gpt2_layers \

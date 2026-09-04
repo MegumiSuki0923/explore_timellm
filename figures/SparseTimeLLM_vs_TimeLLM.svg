@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 920" font-family="'Noto Sans SC','PingFang SC','Microsoft YaHei','Source Han Sans SC',sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1240" height="920" fill="#FFFFFF"/>
+
+  <!-- title -->
+  <text x="620" y="44" text-anchor="middle" font-size="24" font-weight="700" fill="#0F172A">SparseTimeLLM 架构：SparseTSF 周期先验 + Time-LLM 残差修正</text>
+  <text x="620" y="70" text-anchor="middle" font-size="13" fill="#64748B">蓝色 = 沿用原版 Time-LLM　|　绿色 = SparseTSF 新增　|　以 ETTh1 配置为例（seq_len=512, period_len=24, GPT2）</text>
+
+  <!-- ===== shared front ===== -->
+  <rect x="490" y="94" width="260" height="42" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.5"/>
+  <text x="620" y="112" text-anchor="middle" font-size="14" font-weight="600" fill="#334155">输入 x_enc</text>
+  <text x="620" y="129" text-anchor="middle" font-size="12" fill="#64748B">(B, T=512, N=7)</text>
+
+  <line x1="620" y1="136" x2="620" y2="166" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <rect x="455" y="168" width="330" height="42" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.5"/>
+  <text x="620" y="187" text-anchor="middle" font-size="14" font-weight="600" fill="#334155">实例归一化 + 通道独立 (CI)</text>
+  <text x="620" y="203" text-anchor="middle" font-size="12" fill="#64748B">(B, T, N) → (B·N, T, 1)</text>
+
+  <line x1="620" y1="210" x2="620" y2="240" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <rect x="420" y="242" width="400" height="54" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1.8"/>
+  <text x="620" y="263" text-anchor="middle" font-size="14" font-weight="600" fill="#065F46">① 周期卷积滤波（周期内平滑）</text>
+  <text x="620" y="282" text-anchor="middle" font-size="12" fill="#047857">Conv1d k=25（P=24），replicate 填充 ⊕ 残差 → x_conv</text>
+
+  <!-- fork -->
+  <path d="M 620 296 V 316" fill="none" stroke="#475569" stroke-width="1.6"/>
+  <path d="M 435 316 H 915" fill="none" stroke="#475569" stroke-width="1.6"/>
+  <line x1="435" y1="316" x2="435" y2="336" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+  <line x1="915" y1="316" x2="915" y2="336" stroke="#059669" stroke-width="1.8" marker-end="url(#arrowGreen)"/>
+
+  <!-- branch labels -->
+  <rect x="255" y="300" width="360" height="22" rx="11" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="435" y="315" text-anchor="middle" font-size="12" font-weight="600" fill="#1E40AF">Time-LLM 残差分支（拟合非线性扰动）</text>
+  <rect x="735" y="300" width="360" height="22" rx="11" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
+  <text x="915" y="315" text-anchor="middle" font-size="12" font-weight="600" fill="#065F46">SparseTSF 直连分支（周期先验，参数≈0）</text>
+
+  <!-- ===== left column: Time-LLM branch ===== -->
+  <rect x="250" y="338" width="370" height="48" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+  <text x="435" y="357" text-anchor="middle" font-size="14" font-weight="600" fill="#1E40AF">PatchEmbedding（patch=16, stride=8）</text>
+  <text x="435" y="375" text-anchor="middle" font-size="12" fill="#3B82F6">x_conv 末 T 步 → 64 tokens / 通道，d=32</text>
+
+  <line x1="435" y1="386" x2="435" y2="414" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+
+  <rect x="250" y="416" width="370" height="48" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+  <text x="435" y="435" text-anchor="middle" font-size="14" font-weight="600" fill="#1E40AF">Reprogramming Layer（重编程）</text>
+  <text x="435" y="453" text-anchor="middle" font-size="12" fill="#3B82F6">patch → LLM 词元空间（1000 词原型，交叉注意力）</text>
+
+  <line x1="435" y1="464" x2="435" y2="492" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+
+  <rect x="250" y="494" width="370" height="48" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+  <text x="435" y="513" text-anchor="middle" font-size="14" font-weight="600" fill="#1E40AF">拼接 [Prompt 前缀 ; 重编程 token]</text>
+  <text x="435" y="531" text-anchor="middle" font-size="12" fill="#3B82F6">→ LLM 输入序列 (B·N, L_p+64, 768)</text>
+
+  <!-- prompt side box -->
+  <rect x="22" y="494" width="200" height="48" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="122" y="513" text-anchor="middle" font-size="12.5" font-weight="600" fill="#334155">统计 Prompt（数据/任务描述）</text>
+  <text x="122" y="531" text-anchor="middle" font-size="11.5" fill="#64748B">min/max/median/trend/lags（+period 24）</text>
+  <line x1="222" y1="518" x2="248" y2="518" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <line x1="435" y1="542" x2="435" y2="570" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+
+  <rect x="250" y="572" width="370" height="52" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+  <text x="435" y="592" text-anchor="middle" font-size="14" font-weight="700" fill="#1E40AF">冻结 LLM（frozen）：GPT2（12 层, d=768）</text>
+  <text x="435" y="611" text-anchor="middle" font-size="12" fill="#3B82F6">微批前向（llm_chunk_size 控制显存）</text>
+
+  <line x1="435" y1="624" x2="435" y2="652" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+
+  <rect x="250" y="654" width="370" height="48" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+  <text x="435" y="673" text-anchor="middle" font-size="14" font-weight="600" fill="#1E40AF">FlattenHead</text>
+  <text x="435" y="691" text-anchor="middle" font-size="12" fill="#3B82F6">→ 残差预测 y_llm（B·N, pred_len）</text>
+
+  <!-- ===== right column: SparseTSF branch ===== -->
+  <rect x="730" y="338" width="370" height="54" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/>
+  <text x="915" y="358" text-anchor="middle" font-size="14" font-weight="600" fill="#065F46">② 同相位重构</text>
+  <text x="915" y="377" text-anchor="middle" font-size="12" fill="#047857">(B·N, T, 1) → (B·N, P=24, seg_x=22)，逐相位对齐</text>
+
+  <line x1="915" y1="392" x2="915" y2="420" stroke="#059669" stroke-width="1.8" marker-end="url(#arrowGreen)"/>
+
+  <rect x="730" y="422" width="370" height="64" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1.8"/>
+  <text x="915" y="443" text-anchor="middle" font-size="14" font-weight="600" fill="#065F46">③ 周期线性直连（同相位外推）</text>
+  <text x="915" y="462" text-anchor="middle" font-size="12.5" fill="#047857">Linear(seg_x=22 → seg_y, bias=False)</text>
+  <text x="915" y="479" text-anchor="middle" font-size="12" fill="#047857">仅 22×4=88 参数（pred_len=96 时）</text>
+
+  <line x1="915" y1="486" x2="915" y2="514" stroke="#059669" stroke-width="1.8" marker-end="url(#arrowGreen)"/>
+
+  <rect x="730" y="516" width="370" height="48" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/>
+  <text x="915" y="535" text-anchor="middle" font-size="14" font-weight="600" fill="#065F46">展开截取 → y_sparse</text>
+  <text x="915" y="553" text-anchor="middle" font-size="12" fill="#047857">（B·N, seg_y·P) → (B·N, pred_len)</text>
+
+  <!-- original TimeLLM note -->
+  <rect x="730" y="596" width="370" height="66" rx="8" fill="#FFF7ED" stroke="#F59E0B" stroke-width="1.4" stroke-dasharray="6 3"/>
+  <text x="915" y="618" text-anchor="middle" font-size="12.5" font-weight="600" fill="#9A3412">对比：原版 Time-LLM 无绿色分支</text>
+  <text x="915" y="636" text-anchor="middle" font-size="12" fill="#B45309">LLM 的 FlattenHead 输出即最终预测，</text>
+  <text x="915" y="652" text-anchor="middle" font-size="12" fill="#B45309">LLM 独自承担全部预测任务</text>
+
+  <!-- ===== fusion ===== -->
+  <path d="M 435 702 V 742 H 594" fill="none" stroke="#2563eb" stroke-width="1.8"/>
+  <path d="M 915 564 V 742 H 646" fill="none" stroke="#059669" stroke-width="1.8"/>
+  <line x1="620" y1="742" x2="620" y2="776" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <circle cx="620" cy="742" r="22" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="620" y="749" text-anchor="middle" font-size="20" font-weight="700" fill="#B45309">+</text>
+
+  <rect x="440" y="778" width="360" height="48" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.5"/>
+  <text x="620" y="797" text-anchor="middle" font-size="14" font-weight="600" fill="#334155">④ 残差融合 + 反归一化</text>
+  <text x="620" y="815" text-anchor="middle" font-size="12" fill="#64748B">y_total = y_sparse + y_llm → (B, pred_len, N)</text>
+
+  <!-- ===== legend / footer ===== -->
+  <line x1="150" y1="868" x2="1090" y2="868" stroke="#E2E8F0" stroke-width="1.5"/>
+  <rect x="170" y="882" width="26" height="14" rx="3" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2"/>
+  <text x="204" y="894" font-size="12.5" fill="#334155">沿用 Time-LLM（冻结 LLM + 提示重编程）</text>
+  <rect x="470" y="882" width="26" height="14" rx="3" fill="#ECFDF5" stroke="#10B981" stroke-width="1.2"/>
+  <text x="504" y="894" font-size="12.5" fill="#334155">SparseTSF 新增（周期先验骨架）</text>
+  <rect x="740" y="882" width="26" height="14" rx="3" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.2"/>
+  <text x="774" y="894" font-size="12.5" fill="#334155">残差融合</text>
+  <text x="920" y="894" font-size="12.5" fill="#64748B">ETTh1 四步长 MSE 平均 ↓5.9%</text>
+</svg>
