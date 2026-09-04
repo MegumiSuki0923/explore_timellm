@@ -17,3 +17,6 @@ status/
 *.swp
 *.bak
 *.tmp
+
+# Reference repo clones (local only)
+reference/LightGTS/

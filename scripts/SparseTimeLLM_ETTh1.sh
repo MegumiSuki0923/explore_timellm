@@ -17,7 +17,7 @@ d_ff=128
 
 dataset=ETTh1
 seq_len=512
-comment='sparse_v2'
+comment='sparse_v3_periodhead'
 
 # dynamically generate log file path
 timestamp=$(date +"%Y-%m-%d_%H:%M")

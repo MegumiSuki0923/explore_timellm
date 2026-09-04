@@ -12,22 +12,9 @@ from transformers import (
 import transformers
 from layers.StandardNorm import Normalize
 from layers.Embed import PatchEmbedding
+from layers.PeriodDecoder import Decoder, decoder_PredictHead
 
 transformers.logging.set_verbosity_error()
-
-
-class FlattenHead(nn.Module):
-    def __init__(self, nf, target_window, head_dropout=0.0):
-        super().__init__()
-        self.flatten = nn.Flatten(start_dim=-2)
-        self.linear = nn.Linear(nf, target_window)
-        self.dropout = nn.Dropout(head_dropout)
-
-    def forward(self, x):
-        x = self.flatten(x)
-        x = self.linear(x)
-        x = self.dropout(x)
-        return x
 
 
 class ReprogrammingLayer(nn.Module):
@@ -231,10 +218,20 @@ class Model(nn.Module):
         )
 
         self.patch_nums = int((configs.seq_len - self.patch_len) / self.stride + 2)
-        self.head_nf = self.d_ff * self.patch_nums
 
         if self.task_name in ['long_term_forecast', 'short_term_forecast']:
-            self.flatten_head = FlattenHead(self.head_nf, self.pred_len, head_dropout=configs.dropout)
+            # LightGTS (ICML 2025) period-parallel decoding: replicate the last
+            # token with exponential decay, decode future period tokens, then
+            # emit one period block per token (replaces the flatten head).
+            self.target_patch_len = 48  # LightGTS ETTh1 finetune recipe: each block emits 48 points (2 periods)
+            self.out_patch_num = ceil(self.pred_len / self.target_patch_len)
+            decoder_d_ff = 2 * self.d_ff  # LightGTS 2:1 d_model:d_ff convention
+            self.decoder = Decoder(
+                d_layers=3, patch_len=self.patch_len, d_model=self.d_ff,
+                n_heads=configs.n_heads, d_ff=decoder_d_ff,
+                attn_dropout=0.4, dropout=0., norm="LayerNorm"
+            )
+            self.head = decoder_PredictHead(self.d_ff, self.target_patch_len, dropout=configs.dropout)
         else:
             raise NotImplementedError
 
@@ -327,8 +324,12 @@ class Model(nn.Module):
                 dec_out_list.append(chunk_out[:, -self.patch_nums:, :self.d_ff])
             dec_out = torch.cat(dec_out_list, dim=0)
 
-        head_dtype = next(self.flatten_head.parameters()).dtype
-        y_llm = self.flatten_head(dec_out.to(head_dtype))  # (B * N, pred_len)
+        # LightGTS period-parallel decoding: [bs, n_vars, num_patch, d_model]
+        head_dtype = next(self.head.parameters()).dtype
+        dec_out = dec_out.to(head_dtype).view(B, N, self.patch_nums, self.d_ff)
+        dec_out = self.decoder_predict(B, N, dec_out)   # (B, N, d_ff, out_patch_num)
+        y_llm = self.head(dec_out, self.target_patch_len)  # (B, out_patch_num * target_patch_len, N)
+        y_llm = y_llm[:, :self.pred_len, :].permute(0, 2, 1).reshape(B * N, self.pred_len)  # (B * N, pred_len)
 
         # -------------------------------------------------------------
         # 4. Residual Fusion & Output Reconstruction
@@ -338,6 +339,27 @@ class Model(nn.Module):
         dec_out = self.normalize_layers(dec_out, 'denorm')
 
         return dec_out
+
+    def get_dynamic_weights(self, n_preds, decay_rate=0.5):
+        """
+        Generate dynamic weights for the replicated tokens using an exponential decay scheme.
+        (LightGTS_pretrain_period.py:98-111)
+        """
+        weights = decay_rate ** torch.arange(n_preds)
+        return weights
+
+    def decoder_predict(self, bs, n_vars, dec_cross):
+        """
+        dec_cross: tensor [bs x  n_vars x num_patch x d_model]
+        (LightGTS_pretrain_period.py:113-132)
+        """
+        dec_in = dec_cross[:, :, -1, :].unsqueeze(2).expand(-1, -1, self.out_patch_num, -1)
+        weights = self.get_dynamic_weights(self.out_patch_num).to(dec_in.device)
+        dec_in = dec_in * weights.unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+        decoder_output = self.decoder(dec_in, dec_cross)
+        decoder_output = decoder_output.transpose(2, 3)
+
+        return decoder_output
 
     def calcute_lags(self, x_enc):
         # x_enc: (B * N, T, 1) -> permute to (B * N, 1, T)
