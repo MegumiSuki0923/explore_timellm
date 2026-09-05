@@ -1,5 +1,4 @@
-# SparseTimeLLM ETTh1 — ln48 config (LayerNorm + 48-point blocks), horizons 96/192/336 only.
-# 720 already done: logs/ETTh1/ETTh1_720_sparse_v3_ln48_2026-09-04_17:56.log (0.4348/0.4555)
+# SparseTimeLLM ETTh1 — ln48 config (LayerNorm + 48-point blocks), all 4 horizons.
 # Hyperparameters mirror scripts/SparseTimeLLM_ETTh1.sh per-horizon values exactly.
 
 model_name=SparseTimeLLM
@@ -23,13 +22,14 @@ comment='sparse_v3_ln48'
 timestamp=$(date +"%Y-%m-%d_%H:%M")
 log_dir="./logs/${dataset}"
 mkdir -p "$log_dir"
-log_file="${log_dir}/${dataset}_ln48_${comment}_${timestamp}.log"
+log_file="${log_dir}/${dataset}_${seq_len}_${comment}_${timestamp}.log"
 
-for pred_len_arg in 96 192 336; do
+for pred_len_arg in 96 192 336 720; do
   case $pred_len_arg in
     96)  lr=0.01;  lradj_flag="" ;;
     192) lr=0.02;  lradj_flag="" ;;
     336) lr=0.001; lradj_flag="--lradj COS" ;;
+    720) lr=0.01;  lradj_flag="" ;;
   esac
 
   {
